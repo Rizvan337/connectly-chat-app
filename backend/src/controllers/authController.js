@@ -5,8 +5,9 @@ import { generateToken } from "../utils/generateToken.js";
 
 export const signup = async (req, res) => {
   try {
-    const { fullName, email, password } = req.body;
-    if ((!fullName, !email, !password)) {
+    let { fullName, email, password } = req.body;
+    email = email?.toLowerCase();
+    if (!fullName || !email || !password) {
       return res
         .status(HTTP_STATUS.BAD_REQUEST)
         .json({ message: "All fields are required" });
@@ -21,10 +22,10 @@ export const signup = async (req, res) => {
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Invalid email format" });
     }
-    const user = await User.findOne({ email });
-    if (user) {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res
-        .status(HTTP_STATUS.BAD_REQUEST)
+        .status(HTTP_STATUS.CONFLICT)
         .json({ message: "User already exists" });
     }
     const salt = await bcrypt.genSalt(10);
@@ -35,8 +36,9 @@ export const signup = async (req, res) => {
       password: hashedPassword,
     });
     if (newUser) {
-      generateToken(newUser._id, res);
       await newUser.save();
+      generateToken(newUser._id, res);
+
       return res.status(HTTP_STATUS.CREATED).json({
         _id: newUser._id,
         fullName: newUser.fullName,
