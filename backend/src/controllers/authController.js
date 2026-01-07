@@ -2,26 +2,50 @@ import HTTP_STATUS from "../utils/httpStatusCodes.js";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../utils/generateToken.js";
+import validator from "validator";
 
 export const signup = async (req, res) => {
   try {
     let { fullName, email, password } = req.body;
-    email = email?.toLowerCase();
+
+    email = validator.normalizeEmail(email?.trim());
+    fullName = fullName?.trim();
+    password = password?.trim();
+
     if (!fullName || !email || !password) {
       return res
         .status(HTTP_STATUS.BAD_REQUEST)
         .json({ message: "All fields are required" });
     }
-    if (password.length < 6) {
+    // Full name validation
+    if (fullName.length < 3 || fullName.length > 50) {
       return res
         .status(HTTP_STATUS.BAD_REQUEST)
-        .json({ message: "Password must be at least 6 characters" });
+        .json({ message: "Full name must be between 3 and 50 characters" });
     }
-    // check if email is valid: regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: "Invalid email format" });
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    if (!nameRegex.test(fullName)) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ message: "Full name can only contain letters and spaces" });
     }
+    // Email validation
+    if (!validator.isEmail(email)) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ message: "Invalid email format" });
+    }
+
+    // Password validation (strong)
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        message:
+          "Password must be 8+ chars, include uppercase, lowercase, number & special char",
+      });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res
