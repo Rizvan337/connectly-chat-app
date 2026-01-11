@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema(
     },
     profilePic: {
       type: String,
-      default: "",
+      default: "https://ui-avatars.com/api/?name=User&background=random",
     },
   },
   { timestamps: true }
