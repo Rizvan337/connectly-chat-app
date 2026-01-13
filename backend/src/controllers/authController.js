@@ -3,6 +3,8 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../utils/generateToken.js";
 import validator from "validator";
+import { ENV } from "../lib/env.js";
+import { sendWelcomeEmail } from "../emails/emailHandlers.js";
 
 export const signup = async (req, res) => {
   try {
@@ -62,7 +64,11 @@ export const signup = async (req, res) => {
     if (newUser) {
       await newUser.save();
       generateToken(newUser._id, res);
-
+      try {
+        await sendWelcomeEmail(newUser.email, newUser.fullName, ENV.CLIENT_URL);
+      } catch (error) {
+        console.log("Failed to send welcome email:", error);
+      }
       return res.status(HTTP_STATUS.CREATED).json({
         _id: newUser._id,
         fullName: newUser.fullName,
